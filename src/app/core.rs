@@ -57,7 +57,7 @@ impl Core {
         }
         let demuxer = match self
             .cfg
-            .custom_players
+            .custom_demuxers
             .iter()
             .find(|en| en.predicates.find_predicate_match(&path))
         {

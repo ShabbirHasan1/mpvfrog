@@ -60,8 +60,8 @@ impl CustomDemuxersWindow {
         }
         let mut op = Op::None;
         ScrollArea::vertical().max_height(400.0).show(ui, |ui| {
-            let len = core.cfg.custom_players.len();
-            core.cfg.custom_players.retain_mut(|custom_player| {
+            let len = core.cfg.custom_demuxers.len();
+            core.cfg.custom_demuxers.retain_mut(|custom_player| {
                 let mut retain = true;
                 ui.horizontal(|ui| {
                     let label = if custom_player.name.is_empty() {
@@ -96,17 +96,17 @@ impl CustomDemuxersWindow {
         });
         match op {
             Op::None => {}
-            Op::Swap(a, b) => core.cfg.custom_players.swap(a, b),
+            Op::Swap(a, b) => core.cfg.custom_demuxers.swap(a, b),
             Op::Clone(idx) => core
                 .cfg
-                .custom_players
-                .insert(idx, core.cfg.custom_players[idx].clone()),
+                .custom_demuxers
+                .insert(idx, core.cfg.custom_demuxers[idx].clone()),
         }
         if ui.button("➕ Add").clicked() {
-            core.cfg.custom_players.push(CustomPlayerEntry::default());
+            core.cfg.custom_demuxers.push(CustomPlayerEntry::default());
         }
         ui.separator();
-        if let Some(custom_player) = core.cfg.custom_players.get_mut(self.selected_idx) {
+        if let Some(custom_player) = core.cfg.custom_demuxers.get_mut(self.selected_idx) {
             ui.horizontal(|ui| {
                 ui.label("Name");
                 ui.add(

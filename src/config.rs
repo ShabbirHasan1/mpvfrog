@@ -18,7 +18,7 @@ pub struct Config {
     pub music_folder: Option<PathBuf>,
     /// These should all wrap mpv, but could be different demuxers (like for midi)
     #[serde(default)]
-    pub custom_players: Vec<CustomPlayerEntry>,
+    pub custom_demuxers: Vec<CustomPlayerEntry>,
     #[serde(default = "default_volume")]
     pub volume: u8,
     #[serde(default = "default_speed")]
@@ -36,7 +36,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             music_folder: Default::default(),
-            custom_players: Default::default(),
+            custom_demuxers: Default::default(),
             volume: default_volume(),
             speed: default_speed(),
             video: false,
