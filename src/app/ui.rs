@@ -21,6 +21,7 @@ use {
     },
     fuzzy_matcher::{FuzzyMatcher as _, skim::SkimMatcherV2},
     mpv_console_window::MpvConsoleWindow,
+    std::borrow::Cow,
 };
 
 #[derive(Default)]
@@ -458,9 +459,14 @@ impl Ui {
             if !core.mpv_handler.demuxer_active() && core.mpv_handler.demux_term.is_empty() {
                 demux_enabled = false;
             }
+            let tab_name = if core.mpv_handler.demux_cmd_name.is_empty() {
+                Cow::Borrowed("Demuxer")
+            } else {
+                Cow::Owned(format!("Demuxer: {}", core.mpv_handler.demux_cmd_name))
+            };
             let re = ui.add_enabled(
                 demux_enabled,
-                Button::selectable(self.output_source == OutputSource::Demuxer, "Demuxer"),
+                Button::selectable(self.output_source == OutputSource::Demuxer, tab_name),
             );
             re.context_menu(|ui| {
                 if ui.button("Clear").clicked() {

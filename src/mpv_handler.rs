@@ -28,6 +28,9 @@ struct MpvHandlerInner {
 pub struct MpvHandler {
     pub mpv_term: Term,
     pub demux_term: Term,
+    /// Name of the demuxer command. This should be synchronized with the term, so the tab
+    /// shows the same name as the command that produced the term output.
+    pub demux_cmd_name: String,
     inner: Option<MpvHandlerInner>,
     read_demuxer: bool,
     pub active_pty_input: ActivePtyInput,
@@ -54,12 +57,14 @@ impl MpvHandler {
         self.stop_music();
         self.mpv_term.reset();
         self.demux_term.reset();
+        self.demux_cmd_name.clear();
         let (pty, pts) = pty_process::blocking::open()?;
         let mut mpv_command = PtyCommand::new(mpv_cmd);
         let (demuxer_pty, demux_pts) = pty_process::blocking::open()?;
         mpv_command = mpv_command.args(mpv_args);
         if let Some(demuxer) = custom_demuxer {
             logln!("Demuxer: {}, args: {:?}", demuxer.cmd, demuxer.args);
+            self.demux_cmd_name = demuxer.cmd.clone();
             let mut demux_child = PtyCommand::new(demuxer.cmd)
                 .args(demuxer.args)
                 .stdout(Stdio::piped())
@@ -233,6 +238,7 @@ impl Default for MpvHandler {
         Self {
             mpv_term: Term::new(100),
             demux_term: Term::new(100),
+            demux_cmd_name: String::new(),
             inner: None,
             read_demuxer: true,
             active_pty_input: ActivePtyInput::Mpv,
