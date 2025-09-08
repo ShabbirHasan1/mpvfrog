@@ -18,6 +18,7 @@ use {
     egui_colors::{Colorix, tokens::ThemeColor},
     egui_sf2g::egui::{
         self, Align, Button, CentralPanel, ComboBox, Context, ScrollArea, TextEdit, TopBottomPanel,
+        epaint::text::{FontInsert, FontPriority, InsertFontFamily},
     },
     fuzzy_matcher::{FuzzyMatcher as _, skim::SkimMatcherV2},
     mpv_console_window::MpvConsoleWindow,
@@ -71,6 +72,11 @@ enum OutputSource {
 pub const ICO_PREV: &str = "⏮";
 pub const ICO_NEXT: &str = "⏭";
 
+enum FileDialogOp {
+    LoadMusicFolder,
+    AddFont,
+}
+
 impl Ui {
     pub(super) fn update(&mut self, core: &mut Core, ctx: &Context, modal: &mut ModalPopup) {
         if let Some(payload) = &mut modal.payload {
@@ -97,6 +103,29 @@ impl Ui {
                 modal.payload = None;
             }
         }
+        self.file_dialog.update(ctx);
+        if let Some(path) = self.file_dialog.take_picked() {
+            match self.file_dialog.user_data::<FileDialogOp>() {
+                Some(FileDialogOp::AddFont) => match std::fs::read(path) {
+                    Ok(data) => {
+                        let data = egui::FontData::from_owned(data);
+                        ctx.add_font(FontInsert::new(
+                            "test",
+                            data,
+                            vec![InsertFontFamily {
+                                family: egui::FontFamily::Proportional,
+                                priority: FontPriority::Lowest,
+                            }],
+                        ));
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to add font: {e}");
+                    }
+                },
+                Some(FileDialogOp::LoadMusicFolder) => crate::app::open_folder(core, self, path),
+                None => eprintln!("BUG: No operation!"),
+            }
+        }
         TopBottomPanel::top("top_panel").show(ctx, |ui| self.top_panel_ui(core, ui, modal));
         CentralPanel::default().show(ctx, |ui| self.central_panel_ui(core, ui, modal));
         self.windows.update(core, ctx, &mut self.colorix);
@@ -109,6 +138,8 @@ impl Ui {
                     .clicked()
                 {
                     self.file_dialog.pick_directory();
+                    self.file_dialog
+                        .set_user_data(FileDialogOp::LoadMusicFolder);
                 }
                 if ui.button("🎶 Custom demuxers...").clicked() {
                     self.windows.custom_demuxers.open ^= true;
@@ -128,6 +159,11 @@ impl Ui {
                 {
                     self.focus_on = Some(core.selected_song);
                 }
+                if ui.button("🗛 Add fallback font").clicked() {
+                    self.file_dialog.pick_file();
+                    self.file_dialog
+                        .set_user_data::<FileDialogOp>(FileDialogOp::AddFont);
+                }
                 ui.separator();
                 ui.label(concat!("🐸 mpvfrog ", env!("CARGO_PKG_VERSION")));
                 ui.separator();
@@ -139,10 +175,6 @@ impl Ui {
                 }
             });
             ui.group(|ui| {
-                if let Some(path) = self.file_dialog.take_picked() {
-                    crate::app::open_folder(core, self, path);
-                }
-                self.file_dialog.update(ui.ctx());
                 match &core.cfg.music_folder {
                     Some(folder) => {
                         ui.label(folder.display().to_string());
