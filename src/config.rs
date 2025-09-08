@@ -30,6 +30,9 @@ pub struct Config {
     /// Follow symbolic links when loading files from a dir
     #[serde(default)]
     pub follow_symlinks: bool,
+    /// Skip hidden files/folders
+    #[serde(default)]
+    pub skip_hidden: bool,
 }
 
 impl Default for Config {
@@ -42,6 +45,7 @@ impl Default for Config {
             video: false,
             theme: None,
             follow_symlinks: false,
+            skip_hidden: false,
         }
     }
 }

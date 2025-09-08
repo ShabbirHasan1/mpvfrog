@@ -15,17 +15,31 @@ impl Item {
     }
 }
 
+fn is_hidden(entry: &walkdir::DirEntry) -> bool {
+    entry
+        .file_name()
+        .to_str()
+        .map(|s| s.starts_with("."))
+        .unwrap_or(false)
+}
+
 impl Playlist {
     pub fn read_songs(&mut self, cfg: &Config) {
         let Some(music_folder) = &cfg.music_folder else {
             return;
         };
         self.items.clear();
-        for entry in WalkDir::new(music_folder)
+        let entries = WalkDir::new(music_folder)
             .follow_links(cfg.follow_symlinks)
             .into_iter()
-            .filter_map(Result::ok)
-        {
+            .filter_entry(|en| {
+                if cfg.skip_hidden {
+                    !is_hidden(en)
+                } else {
+                    true
+                }
+            });
+        for entry in entries.filter_map(Result::ok) {
             if entry.file_type().is_file() {
                 let en_path = entry.path();
                 if let Some(ext) = en_path.extension().and_then(|ext| ext.to_str()) {
