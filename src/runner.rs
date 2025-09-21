@@ -34,7 +34,13 @@ pub fn run(
     let mut tray_popup_win = None;
     rw.set_framerate_limit(60);
     let mut sf_egui = SfEgui::new(&rw);
-    let mut app = App::new(sf_egui.context(), &args);
+    let mut app = match App::new(sf_egui.context(), &args) {
+        Ok(app) => app,
+        Err(e) => {
+            eprintln!("Failed to start mpvfrog: {e:?}");
+            return;
+        }
+    };
     let mut win_visible = true;
     'mainloop: loop {
         let mut event_flags;

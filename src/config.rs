@@ -1,7 +1,6 @@
 //! Persistent configuration for the application
 
 use {
-    crate::logln,
     directories::ProjectDirs,
     enum_kinds::EnumKind,
     serde::{Deserialize, Serialize},
@@ -59,14 +58,14 @@ const fn default_speed() -> f64 {
 }
 
 impl Config {
-    pub fn load_or_default() -> Self {
-        match std::fs::read_to_string(Self::path()) {
-            Ok(string) => serde_json::from_str(&string).unwrap(),
-            Err(e) => {
-                logln!("{}", e);
-                Default::default()
-            }
-        }
+    pub fn load_if_exists() -> Option<anyhow::Result<Self>> {
+        let path = Self::path();
+        path.exists().then(|| Self::load(&path))
+    }
+    fn load(path: &Path) -> anyhow::Result<Self> {
+        let string = std::fs::read_to_string(path)?;
+        let this = serde_json::from_str(&string)?;
+        Ok(this)
     }
     pub fn path() -> PathBuf {
         let proj_dirs = ProjectDirs::from("", "crumblingstatue", "mpvfrog").unwrap();

@@ -16,6 +16,7 @@ use {
         config::Config,
         mpv_handler::{ActivePtyInput, MpvHandler},
     },
+    anyhow::Context as _,
     egui_sf2g::egui::{self, Context, Event, Key},
     playlist::Playlist,
     std::{fmt::Display, path::PathBuf, sync::Mutex, time::Instant},
@@ -76,9 +77,12 @@ impl ModalPopup {
 }
 
 impl App {
-    pub fn new(ctx: &Context, args: &crate::Args) -> Self {
+    pub fn new(ctx: &Context, args: &crate::Args) -> anyhow::Result<Self> {
         ctx.set_visuals(egui::Visuals::dark());
-        let cfg = Config::load_or_default();
+        let cfg = match Config::load_if_exists() {
+            Some(result) => result.context("Failed to load config")?,
+            None => Config::default(),
+        };
         let mut core = Core {
             cfg,
             playlist: Playlist::default(),
@@ -123,7 +127,7 @@ impl App {
                 app.focus_and_play(pos);
             }
         }
-        app
+        Ok(app)
     }
 
     pub fn update(&mut self, ctx: &Context) {
