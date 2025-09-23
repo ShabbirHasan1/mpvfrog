@@ -60,22 +60,13 @@ impl CustomDemuxersWindow {
         self.open = open;
     }
     fn window_ui(&mut self, core: &mut Core, ui: &mut Ui) {
-        let mut idx = 0;
-        enum Op {
-            None,
-            Swap(usize, usize),
-            Clone(usize),
-        }
-        let mut op = Op::None;
         ScrollArea::vertical().max_height(400.0).show(ui, |ui| {
-            let len = core.cfg.custom_demuxers.len();
-            core.cfg.custom_demuxers.retain_mut(|custom_player| {
-                let mut retain = true;
+            for (idx, custom) in core.cfg.custom_demuxers.iter().enumerate() {
                 ui.horizontal(|ui| {
-                    let label = if custom_player.name.is_empty() {
+                    let label = if custom.name.is_empty() {
                         "<unnamed demuxer>"
                     } else {
-                        &custom_player.name
+                        &custom.name
                     };
                     if ui
                         .selectable_label(self.selected_idx == idx, label)
@@ -83,43 +74,65 @@ impl CustomDemuxersWindow {
                     {
                         self.selected_idx = idx;
                     }
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if ui.button("🗑").on_hover_text("Delete").clicked() {
-                            retain = false;
-                        }
-                        if ui.button("⏶").on_hover_text("Higher prio").clicked() && idx > 0 {
-                            op = Op::Swap(idx, idx - 1);
-                        }
-                        if ui.button("⏷").on_hover_text("Lower prio").clicked() && idx < len - 1 {
-                            op = Op::Swap(idx, idx + 1);
-                        }
-                        if ui.button("🗐").on_hover_text("Clone").clicked() {
-                            op = Op::Clone(idx);
-                        }
-                    });
-                    idx += 1;
                 });
-                retain
-            });
+            }
         });
-        match op {
-            Op::None => {}
-            Op::Swap(a, b) => core.cfg.custom_demuxers.swap(a, b),
-            Op::Clone(idx) => core
-                .cfg
-                .custom_demuxers
-                .insert(idx, core.cfg.custom_demuxers[idx].clone()),
+        ui.separator();
+        enum Op {
+            None,
+            Swap(usize),
+            Clone,
+            Remove,
         }
-        if ui.button("➕ Add").clicked() {
-            core.cfg.custom_demuxers.push(CustomDemuxerEntry::default());
-        }
+        let mut op = Op::None;
+        ui.horizontal(|ui| {
+            ui.add_enabled_ui(
+                core.cfg.custom_demuxers.get(self.selected_idx).is_some(),
+                |ui| {
+                    let len = core.cfg.custom_demuxers.len();
+                    if ui.button("🗑").on_hover_text("Delete").clicked() {
+                        op = Op::Remove;
+                    }
+                    if ui.button("⏶").on_hover_text("Higher prio").clicked()
+                        && self.selected_idx > 0
+                    {
+                        op = Op::Swap(self.selected_idx - 1);
+                    }
+                    if ui.button("⏷").on_hover_text("Lower prio").clicked()
+                        && self.selected_idx < len - 1
+                    {
+                        op = Op::Swap(self.selected_idx + 1);
+                    }
+                    if ui.button("🗐").on_hover_text("Clone").clicked() {
+                        op = Op::Clone;
+                    }
+                },
+            );
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if ui.button("➕ Add").clicked() {
+                    core.cfg.custom_demuxers.push(CustomDemuxerEntry::default());
+                }
+            });
+            match op {
+                Op::None => {}
+                Op::Swap(other_idx) => core.cfg.custom_demuxers.swap(self.selected_idx, other_idx),
+                Op::Clone => core.cfg.custom_demuxers.insert(
+                    self.selected_idx,
+                    core.cfg.custom_demuxers[self.selected_idx].clone(),
+                ),
+                Op::Remove => {
+                    core.cfg.custom_demuxers.remove(self.selected_idx);
+                }
+            }
+        });
         ui.separator();
         if let Some(custom) = core.cfg.custom_demuxers.get_mut(self.selected_idx) {
-            self.selected_demuxer_ui(ui, idx, custom);
+            self.selected_demuxer_ui(ui, custom);
         }
     }
 
-    fn selected_demuxer_ui(&mut self, ui: &mut Ui, idx: usize, custom: &mut CustomDemuxerEntry) {
+    fn selected_demuxer_ui(&mut self, ui: &mut Ui, custom: &mut CustomDemuxerEntry) {
+        let idx = self.selected_idx;
         ui.horizontal(|ui| {
             ui.label("Name");
             ui.add(egui::TextEdit::singleline(&mut custom.name).desired_width(f32::INFINITY));
