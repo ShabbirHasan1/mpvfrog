@@ -111,6 +111,8 @@ impl Ui {
                     let result = try_add_fallback_font(ctx, &path);
                     if let Err(e) = result {
                         modal.error("Failed to add fallback font", e.to_string());
+                    } else if let Some(path_as_str) = path.to_str() {
+                        core.cfg.fallback_font_paths.push(path_as_str.to_owned());
                     }
                 }
                 Some(FileDialogOp::LoadMusicFolder) => crate::app::open_folder(core, self, path),
@@ -621,7 +623,7 @@ impl PlaylistBehavior {
     }
 }
 
-fn try_add_fallback_font(ctx: &Context, path: &Path) -> anyhow::Result<()> {
+pub(crate) fn try_add_fallback_font(ctx: &Context, path: &Path) -> anyhow::Result<()> {
     let data = std::fs::read(path)?;
     let data = egui::FontData::from_owned(data);
     ab_glyph::FontRef::try_from_slice_and_index(&data.font, data.index)?;

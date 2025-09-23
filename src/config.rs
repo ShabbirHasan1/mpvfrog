@@ -32,6 +32,9 @@ pub struct Config {
     /// Skip hidden files/folders
     #[serde(default)]
     pub skip_hidden: bool,
+    /// Paths to fallback fonts to load on startup
+    #[serde(default)]
+    pub fallback_font_paths: Vec<String>,
 }
 
 impl Default for Config {
@@ -45,6 +48,7 @@ impl Default for Config {
             theme: None,
             follow_symlinks: false,
             skip_hidden: false,
+            fallback_font_paths: Vec::new(),
         }
     }
 }
