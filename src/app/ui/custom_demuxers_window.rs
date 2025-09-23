@@ -41,6 +41,14 @@ impl PredicateKind {
             Self::HasExts => "Has extension(s)",
         }
     }
+    fn desc(&self) -> &'static str {
+        match self {
+            Self::BeginsWith => "Begins with a string (e.g. `mdat.`) for TFMX files",
+            Self::HasExts => {
+                "Space separated list of file extensions (e.g. `mod xm it`) for module files"
+            }
+        }
+    }
 }
 
 impl CustomDemuxersWindow {
@@ -239,7 +247,7 @@ impl CustomDemuxersWindow {
                         }
                     });
                     if let Some(pred) = custom_player.predicates.get_mut(self.selected_pred_idx) {
-                        ComboBox::new(idx, "Kind")
+                        let re = ComboBox::new(idx, "Kind")
                             .selected_text(PredicateKind::from(&*pred).label())
                             .show_ui(ui, |ui| {
                                 ui.selectable_value(
@@ -253,10 +261,14 @@ impl CustomDemuxersWindow {
                                     PredicateKind::HasExts.label(),
                                 );
                             });
+                        let desc = PredicateKind::from(&*pred).desc();
+                        re.response.on_hover_text(desc);
                         match pred {
                             Predicate::BeginsWith(frag) => {
                                 ui.add(
-                                    egui::TextEdit::singleline(frag).desired_width(f32::INFINITY),
+                                    egui::TextEdit::singleline(frag)
+                                        .hint_text(desc)
+                                        .desired_width(f32::INFINITY),
                                 );
                             }
                             Predicate::HasExts(HasExtsPredicate {
@@ -265,6 +277,7 @@ impl CustomDemuxersWindow {
                             }) => {
                                 ui.add(
                                     egui::TextEdit::singleline(ext_list)
+                                        .hint_text(desc)
                                         .desired_width(f32::INFINITY),
                                 );
                                 ui.checkbox(case_sensitive, "Case sensitive");
