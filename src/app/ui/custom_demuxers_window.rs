@@ -1,7 +1,7 @@
 use {
     crate::{
         app::Core,
-        config::{Command, CustomPlayerEntry, HasExtsPredicate, Predicate, PredicateKind},
+        config::{Command, CustomDemuxerEntry, HasExtsPredicate, Predicate, PredicateKind},
     },
     egui_sf2g::egui::{self, Color32, ComboBox, Context, RichText, ScrollArea, Ui, Window},
 };
@@ -111,7 +111,7 @@ impl CustomDemuxersWindow {
                 .insert(idx, core.cfg.custom_demuxers[idx].clone()),
         }
         if ui.button("➕ Add").clicked() {
-            core.cfg.custom_demuxers.push(CustomPlayerEntry::default());
+            core.cfg.custom_demuxers.push(CustomDemuxerEntry::default());
         }
         ui.separator();
         if let Some(custom) = core.cfg.custom_demuxers.get_mut(self.selected_idx) {
@@ -119,7 +119,7 @@ impl CustomDemuxersWindow {
         }
     }
 
-    fn selected_demuxer_ui(&mut self, ui: &mut Ui, idx: usize, custom: &mut CustomPlayerEntry) {
+    fn selected_demuxer_ui(&mut self, ui: &mut Ui, idx: usize, custom: &mut CustomDemuxerEntry) {
         ui.horizontal(|ui| {
             ui.label("Name");
             ui.add(egui::TextEdit::singleline(&mut custom.name).desired_width(f32::INFINITY));

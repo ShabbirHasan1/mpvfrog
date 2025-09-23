@@ -17,7 +17,7 @@ pub struct Config {
     pub music_folder: Option<PathBuf>,
     /// These should all wrap mpv, but could be different demuxers (like for midi)
     #[serde(default)]
-    pub custom_demuxers: Vec<CustomPlayerEntry>,
+    pub custom_demuxers: Vec<CustomDemuxerEntry>,
     #[serde(default = "default_volume")]
     pub volume: u8,
     #[serde(default = "default_speed")]
@@ -112,7 +112,7 @@ impl HasExtsPredicate {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
-pub struct CustomPlayerEntry {
+pub struct CustomDemuxerEntry {
     pub predicates: Vec<Predicate>,
     pub reader_cmd: Command,
     pub extra_mpv_args: Vec<String>,
