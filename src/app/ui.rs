@@ -107,8 +107,14 @@ impl Ui {
         if let Some(path) = self.file_dialog.take_picked() {
             match self.file_dialog.user_data::<FileDialogOp>() {
                 Some(FileDialogOp::AddFont) => match std::fs::read(path) {
-                    Ok(data) => {
+                    Ok(data) => 'add_font: {
                         let data = egui::FontData::from_owned(data);
+                        if let Err(e) =
+                            ab_glyph::FontRef::try_from_slice_and_index(&data.font, data.index)
+                        {
+                            modal.error("Error adding font", e.to_string());
+                            break 'add_font;
+                        }
                         ctx.add_font(FontInsert::new(
                             "test",
                             data,

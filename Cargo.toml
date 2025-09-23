@@ -31,6 +31,8 @@ fuzzy-matcher = "0.3.7"
 clap.version = "4.5.37"
 clap.default-features = false
 clap.features = ["std", "help", "usage", "derive"]
+# Need this for font verification, since egui doesn't do this
+ab_glyph = "0.2"
 
 [profile.dev.package."*"]
 opt-level = 2
