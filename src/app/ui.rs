@@ -22,7 +22,7 @@ use {
     },
     fuzzy_matcher::{FuzzyMatcher as _, skim::SkimMatcherV2},
     mpv_console_window::MpvConsoleWindow,
-    std::borrow::Cow,
+    std::{borrow::Cow, path::Path},
 };
 
 #[derive(Default)]
@@ -106,28 +106,12 @@ impl Ui {
         self.file_dialog.update(ctx);
         if let Some(path) = self.file_dialog.take_picked() {
             match self.file_dialog.user_data::<FileDialogOp>() {
-                Some(FileDialogOp::AddFont) => match std::fs::read(path) {
-                    Ok(data) => 'add_font: {
-                        let data = egui::FontData::from_owned(data);
-                        if let Err(e) =
-                            ab_glyph::FontRef::try_from_slice_and_index(&data.font, data.index)
-                        {
-                            modal.error("Error adding font", e.to_string());
-                            break 'add_font;
-                        }
-                        ctx.add_font(FontInsert::new(
-                            "test",
-                            data,
-                            vec![InsertFontFamily {
-                                family: egui::FontFamily::Proportional,
-                                priority: FontPriority::Lowest,
-                            }],
-                        ));
+                Some(FileDialogOp::AddFont) => {
+                    let result = try_add_fallback_font(ctx, &path);
+                    if let Err(e) = result {
+                        modal.error("Failed to add fallback font", e.to_string());
                     }
-                    Err(e) => {
-                        eprintln!("Failed to add font: {e}");
-                    }
-                },
+                }
                 Some(FileDialogOp::LoadMusicFolder) => crate::app::open_folder(core, self, path),
                 None => eprintln!("BUG: No operation!"),
             }
@@ -634,4 +618,19 @@ impl PlaylistBehavior {
             Self::RepeatPlaylist => "Repeat playlist",
         }
     }
+}
+
+fn try_add_fallback_font(ctx: &Context, path: &Path) -> anyhow::Result<()> {
+    let data = std::fs::read(path)?;
+    let data = egui::FontData::from_owned(data);
+    ab_glyph::FontRef::try_from_slice_and_index(&data.font, data.index)?;
+    ctx.add_font(FontInsert::new(
+        "test",
+        data,
+        vec![InsertFontFamily {
+            family: egui::FontFamily::Proportional,
+            priority: FontPriority::Lowest,
+        }],
+    ));
+    Ok(())
 }
