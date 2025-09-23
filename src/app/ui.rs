@@ -14,6 +14,7 @@ use {
             result_ext::ResultModalExt as _, str_ext::StrExt as _,
         },
     },
+    anyhow::Context as _,
     color_theme_window::ColorThemeWindow,
     egui_colors::{Colorix, tokens::ThemeColor},
     egui_sf2g::egui::{
@@ -624,8 +625,10 @@ fn try_add_fallback_font(ctx: &Context, path: &Path) -> anyhow::Result<()> {
     let data = std::fs::read(path)?;
     let data = egui::FontData::from_owned(data);
     ab_glyph::FontRef::try_from_slice_and_index(&data.font, data.index)?;
+    let filename = path.file_name().context("Couldn't get file name of font")?;
+    let name = filename.to_string_lossy();
     ctx.add_font(FontInsert::new(
-        "test",
+        &name,
         data,
         vec![InsertFontFamily {
             family: egui::FontFamily::Proportional,
