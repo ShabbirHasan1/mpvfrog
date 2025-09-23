@@ -1,7 +1,7 @@
 use {
     crate::{
         app::Core,
-        config::{Command, CustomPlayerEntry, Predicate, PredicateKind},
+        config::{Command, CustomPlayerEntry, HasExtsPredicate, Predicate, PredicateKind},
     },
     egui_sf2g::egui::{self, Color32, ComboBox, Context, RichText, ScrollArea, Ui, Window},
 };
@@ -38,7 +38,7 @@ impl PredicateKind {
     fn label(&self) -> &str {
         match self {
             Self::BeginsWith => "Begins with",
-            Self::HasExt => "Has extension",
+            Self::HasExts => "Has extension(s)",
         }
     }
 }
@@ -235,7 +235,7 @@ impl CustomDemuxersWindow {
                         if ui.button("➕").on_hover_text("Add predicate").clicked() {
                             custom_player
                                 .predicates
-                                .push(Predicate::HasExt(String::new()));
+                                .push(Predicate::HasExts(HasExtsPredicate::default()));
                         }
                     });
                     if let Some(pred) = custom_player.predicates.get_mut(self.selected_pred_idx) {
@@ -249,15 +249,25 @@ impl CustomDemuxersWindow {
                                 );
                                 ui.selectable_value(
                                     pred,
-                                    Predicate::HasExt(String::new()),
-                                    PredicateKind::HasExt.label(),
+                                    Predicate::HasExts(HasExtsPredicate::default()),
+                                    PredicateKind::HasExts.label(),
                                 );
                             });
                         match pred {
-                            Predicate::BeginsWith(frag) => ui
-                                .add(egui::TextEdit::singleline(frag).desired_width(f32::INFINITY)),
-                            Predicate::HasExt(ext) => {
-                                ui.add(egui::TextEdit::singleline(ext).desired_width(f32::INFINITY))
+                            Predicate::BeginsWith(frag) => {
+                                ui.add(
+                                    egui::TextEdit::singleline(frag).desired_width(f32::INFINITY),
+                                );
+                            }
+                            Predicate::HasExts(HasExtsPredicate {
+                                ext_list,
+                                case_sensitive,
+                            }) => {
+                                ui.add(
+                                    egui::TextEdit::singleline(ext_list)
+                                        .desired_width(f32::INFINITY),
+                                );
+                                ui.checkbox(case_sensitive, "Case sensitive");
                             }
                         };
                         if ui.button("Remove").clicked() {

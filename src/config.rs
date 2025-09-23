@@ -3,7 +3,7 @@
 use {
     directories::ProjectDirs,
     enum_kinds::EnumKind,
-    serde::{Deserialize, Serialize},
+    serde::{Deserialize, Deserializer, Serialize},
     std::{
         fmt::Display,
         path::{Path, PathBuf},
@@ -79,7 +79,36 @@ impl Config {
 #[enum_kind(PredicateKind)]
 pub enum Predicate {
     BeginsWith(String),
-    HasExt(String),
+    #[serde(alias = "HasExt")]
+    HasExts(#[serde(deserialize_with = "HasExtsPredicate::deserialize")] HasExtsPredicate),
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Default)]
+pub struct HasExtsPredicate {
+    /// Space separated list of file extensions
+    pub ext_list: String,
+    /// Whether the ext comparison should be case sensitive
+    pub case_sensitive: bool,
+}
+
+impl HasExtsPredicate {
+    fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        #[derive(Serialize, Deserialize)]
+        #[serde(untagged)]
+        enum Versions {
+            // Used to be a single string
+            V1(String),
+            V2(HasExtsPredicate),
+        }
+        let obj = Versions::deserialize(d)?;
+        Ok(match obj {
+            Versions::V1(ext_list) => Self {
+                ext_list,
+                case_sensitive: false,
+            },
+            Versions::V2(pred) => pred,
+        })
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
@@ -160,7 +189,10 @@ impl Predicate {
     pub(crate) fn matches(&self, path: &Path) -> bool {
         match self {
             Self::BeginsWith(fragment) => Self::matches_begin(fragment, path),
-            Self::HasExt(ext) => Self::matches_ext(ext, path),
+            Self::HasExts(HasExtsPredicate {
+                ext_list,
+                case_sensitive,
+            }) => Self::matches_exts(ext_list, path, *case_sensitive),
         }
     }
 
@@ -170,10 +202,16 @@ impl Predicate {
             None => false,
         }
     }
-
-    fn matches_ext(ext: &str, path: &Path) -> bool {
+    /// `exts` is a list of space separated extensions
+    fn matches_exts(exts: &str, path: &Path, sensitive: bool) -> bool {
         match path.extension() {
-            Some(path_ext) => path_ext == ext,
+            Some(path_ext) => exts.split_whitespace().any(|ext| {
+                if sensitive {
+                    path_ext == ext
+                } else {
+                    path_ext.eq_ignore_ascii_case(ext)
+                }
+            }),
             None => false,
         }
     }
