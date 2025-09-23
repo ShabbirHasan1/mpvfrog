@@ -114,178 +114,177 @@ impl CustomDemuxersWindow {
             core.cfg.custom_demuxers.push(CustomPlayerEntry::default());
         }
         ui.separator();
-        if let Some(custom_player) = core.cfg.custom_demuxers.get_mut(self.selected_idx) {
-            ui.horizontal(|ui| {
-                ui.label("Name");
-                ui.add(
-                    egui::TextEdit::singleline(&mut custom_player.name)
-                        .desired_width(f32::INFINITY),
-                );
-            });
-            ui.horizontal(|ui| {
-                if ui
-                    .selectable_label(self.tab == CustomDemuxTab::Commands, "Commands")
-                    .clicked()
-                {
-                    self.tab = CustomDemuxTab::Commands;
-                }
-                if ui
-                    .selectable_label(self.tab == CustomDemuxTab::Predicates, "Predicates")
-                    .clicked()
-                {
-                    self.tab = CustomDemuxTab::Predicates;
-                }
-            });
-            ui.separator();
-            match self.tab {
-                CustomDemuxTab::Commands => {
-                    ui.label("Demuxer command");
-                    match self.edit_target {
-                        Some(EditTarget {
-                            index,
-                            which: EditTargetWhich::Command,
-                        }) if idx == index => {
-                            if ui
-                                .add(
-                                    egui::TextEdit::multiline(&mut self.edit_buffer)
-                                        .desired_rows(3)
-                                        .desired_width(f32::INFINITY),
-                                )
-                                .lost_focus()
-                            {
-                                match Command::from_str(&self.edit_buffer) {
-                                    Ok(cmd) => {
-                                        custom_player.reader_cmd = cmd;
-                                        self.error_label.clear();
-                                    }
-                                    Err(e) => self.error_label = e.to_string(),
-                                }
-                                self.edit_buffer.clear();
-                                self.edit_target = None;
-                            }
-                        }
-                        _ => {
-                            if ui
-                                .add(
-                                    egui::TextEdit::multiline(
-                                        &mut custom_player.reader_cmd.to_string().unwrap(),
-                                    )
+        if let Some(custom) = core.cfg.custom_demuxers.get_mut(self.selected_idx) {
+            self.selected_demuxer_ui(ui, idx, custom);
+        }
+    }
+
+    fn selected_demuxer_ui(&mut self, ui: &mut Ui, idx: usize, custom: &mut CustomPlayerEntry) {
+        ui.horizontal(|ui| {
+            ui.label("Name");
+            ui.add(egui::TextEdit::singleline(&mut custom.name).desired_width(f32::INFINITY));
+        });
+        ui.horizontal(|ui| {
+            if ui
+                .selectable_label(self.tab == CustomDemuxTab::Commands, "Commands")
+                .clicked()
+            {
+                self.tab = CustomDemuxTab::Commands;
+            }
+            if ui
+                .selectable_label(self.tab == CustomDemuxTab::Predicates, "Predicates")
+                .clicked()
+            {
+                self.tab = CustomDemuxTab::Predicates;
+            }
+        });
+        ui.separator();
+        match self.tab {
+            CustomDemuxTab::Commands => {
+                ui.label("Demuxer command");
+                match self.edit_target {
+                    Some(EditTarget {
+                        index,
+                        which: EditTargetWhich::Command,
+                    }) if idx == index => {
+                        if ui
+                            .add(
+                                egui::TextEdit::multiline(&mut self.edit_buffer)
                                     .desired_rows(3)
                                     .desired_width(f32::INFINITY),
-                                )
-                                .gained_focus()
-                            {
-                                self.edit_buffer = custom_player.reader_cmd.to_string().unwrap();
-                                self.edit_target = Some(EditTarget {
-                                    index: idx,
-                                    which: EditTargetWhich::Command,
-                                });
+                            )
+                            .lost_focus()
+                        {
+                            match Command::from_str(&self.edit_buffer) {
+                                Ok(cmd) => {
+                                    custom.reader_cmd = cmd;
+                                    self.error_label.clear();
+                                }
+                                Err(e) => self.error_label = e.to_string(),
                             }
+                            self.edit_buffer.clear();
+                            self.edit_target = None;
+                        }
+                    }
+                    _ => {
+                        if ui
+                            .add(
+                                egui::TextEdit::multiline(
+                                    &mut custom.reader_cmd.to_string().unwrap(),
+                                )
+                                .desired_rows(3)
+                                .desired_width(f32::INFINITY),
+                            )
+                            .gained_focus()
+                        {
+                            self.edit_buffer = custom.reader_cmd.to_string().unwrap();
+                            self.edit_target = Some(EditTarget {
+                                index: idx,
+                                which: EditTargetWhich::Command,
+                            });
+                        }
+                    }
+                };
+                if !self.error_label.is_empty() {
+                    ui.label(RichText::new(&self.error_label).color(Color32::RED));
+                }
+                ui.label("Example: my-cmd --input {}");
+                ui.label("extra mpv args");
+                match self.edit_target {
+                    Some(EditTarget {
+                        index,
+                        which: EditTargetWhich::MpvArgs,
+                    }) if idx == index => {
+                        if ui
+                            .add(
+                                egui::TextEdit::multiline(&mut self.edit_buffer)
+                                    .desired_rows(3)
+                                    .desired_width(f32::INFINITY),
+                            )
+                            .lost_focus()
+                        {
+                            custom.extra_mpv_args = self
+                                .edit_buffer
+                                .split_whitespace()
+                                .map(String::from)
+                                .collect();
+                            self.edit_buffer.clear();
+                            self.edit_target = None;
+                        }
+                    }
+                    _ => {
+                        if ui
+                            .add(
+                                egui::TextEdit::multiline(&mut custom.extra_mpv_args.join(" "))
+                                    .desired_rows(3)
+                                    .desired_width(f32::INFINITY),
+                            )
+                            .gained_focus()
+                        {
+                            self.edit_buffer = custom.extra_mpv_args.join(" ");
+                            self.edit_target = Some(EditTarget {
+                                index: idx,
+                                which: EditTargetWhich::MpvArgs,
+                            });
+                        }
+                    }
+                }
+            }
+            CustomDemuxTab::Predicates => {
+                ui.horizontal(|ui| {
+                    for i in 0..custom.predicates.len() {
+                        if ui
+                            .selectable_label(i == self.selected_pred_idx, (i + 1).to_string())
+                            .clicked()
+                        {
+                            self.selected_pred_idx = i;
+                        }
+                    }
+                    if ui.button("➕").on_hover_text("Add predicate").clicked() {
+                        custom
+                            .predicates
+                            .push(Predicate::HasExts(HasExtsPredicate::default()));
+                    }
+                });
+                if let Some(pred) = custom.predicates.get_mut(self.selected_pred_idx) {
+                    let re = ComboBox::new(idx, "Kind")
+                        .selected_text(PredicateKind::from(&*pred).label())
+                        .show_ui(ui, |ui| {
+                            ui.selectable_value(
+                                pred,
+                                Predicate::BeginsWith(String::new()),
+                                PredicateKind::BeginsWith.label(),
+                            );
+                            ui.selectable_value(
+                                pred,
+                                Predicate::HasExts(HasExtsPredicate::default()),
+                                PredicateKind::HasExts.label(),
+                            );
+                        });
+                    let desc = PredicateKind::from(&*pred).desc();
+                    re.response.on_hover_text(desc);
+                    match pred {
+                        Predicate::BeginsWith(frag) => {
+                            ui.add(
+                                egui::TextEdit::singleline(frag)
+                                    .hint_text(desc)
+                                    .desired_width(f32::INFINITY),
+                            );
+                        }
+                        Predicate::HasExts(HasExtsPredicate {
+                            ext_list,
+                            case_sensitive,
+                        }) => {
+                            ui.add(
+                                egui::TextEdit::singleline(ext_list)
+                                    .hint_text(desc)
+                                    .desired_width(f32::INFINITY),
+                            );
+                            ui.checkbox(case_sensitive, "Case sensitive");
                         }
                     };
-                    if !self.error_label.is_empty() {
-                        ui.label(RichText::new(&self.error_label).color(Color32::RED));
-                    }
-                    ui.label("Example: my-cmd --input {}");
-                    ui.label("extra mpv args");
-                    match self.edit_target {
-                        Some(EditTarget {
-                            index,
-                            which: EditTargetWhich::MpvArgs,
-                        }) if idx == index => {
-                            if ui
-                                .add(
-                                    egui::TextEdit::multiline(&mut self.edit_buffer)
-                                        .desired_rows(3)
-                                        .desired_width(f32::INFINITY),
-                                )
-                                .lost_focus()
-                            {
-                                custom_player.extra_mpv_args = self
-                                    .edit_buffer
-                                    .split_whitespace()
-                                    .map(String::from)
-                                    .collect();
-                                self.edit_buffer.clear();
-                                self.edit_target = None;
-                            }
-                        }
-                        _ => {
-                            if ui
-                                .add(
-                                    egui::TextEdit::multiline(
-                                        &mut custom_player.extra_mpv_args.join(" "),
-                                    )
-                                    .desired_rows(3)
-                                    .desired_width(f32::INFINITY),
-                                )
-                                .gained_focus()
-                            {
-                                self.edit_buffer = custom_player.extra_mpv_args.join(" ");
-                                self.edit_target = Some(EditTarget {
-                                    index: idx,
-                                    which: EditTargetWhich::MpvArgs,
-                                });
-                            }
-                        }
-                    }
-                }
-                CustomDemuxTab::Predicates => {
-                    ui.horizontal(|ui| {
-                        for i in 0..custom_player.predicates.len() {
-                            if ui
-                                .selectable_label(i == self.selected_pred_idx, (i + 1).to_string())
-                                .clicked()
-                            {
-                                self.selected_pred_idx = i;
-                            }
-                        }
-                        if ui.button("➕").on_hover_text("Add predicate").clicked() {
-                            custom_player
-                                .predicates
-                                .push(Predicate::HasExts(HasExtsPredicate::default()));
-                        }
-                    });
-                    if let Some(pred) = custom_player.predicates.get_mut(self.selected_pred_idx) {
-                        let re = ComboBox::new(idx, "Kind")
-                            .selected_text(PredicateKind::from(&*pred).label())
-                            .show_ui(ui, |ui| {
-                                ui.selectable_value(
-                                    pred,
-                                    Predicate::BeginsWith(String::new()),
-                                    PredicateKind::BeginsWith.label(),
-                                );
-                                ui.selectable_value(
-                                    pred,
-                                    Predicate::HasExts(HasExtsPredicate::default()),
-                                    PredicateKind::HasExts.label(),
-                                );
-                            });
-                        let desc = PredicateKind::from(&*pred).desc();
-                        re.response.on_hover_text(desc);
-                        match pred {
-                            Predicate::BeginsWith(frag) => {
-                                ui.add(
-                                    egui::TextEdit::singleline(frag)
-                                        .hint_text(desc)
-                                        .desired_width(f32::INFINITY),
-                                );
-                            }
-                            Predicate::HasExts(HasExtsPredicate {
-                                ext_list,
-                                case_sensitive,
-                            }) => {
-                                ui.add(
-                                    egui::TextEdit::singleline(ext_list)
-                                        .hint_text(desc)
-                                        .desired_width(f32::INFINITY),
-                                );
-                                ui.checkbox(case_sensitive, "Case sensitive");
-                            }
-                        };
-                        if ui.button("Remove").clicked() {
-                            custom_player.predicates.remove(self.selected_pred_idx);
-                        }
+                    if ui.button("Remove").clicked() {
+                        custom.predicates.remove(self.selected_pred_idx);
                     }
                 }
             }
