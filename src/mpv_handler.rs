@@ -13,6 +13,7 @@ use {
     pty_process::blocking::{Command as PtyCommand, Pty},
     std::{
         ffi::{OsStr, OsString},
+        io::Read as _,
         io::Write as _,
         process::{Child, Stdio},
     },
@@ -58,7 +59,7 @@ impl MpvHandler {
         self.mpv_term.reset();
         self.demux_term.reset();
         self.demux_cmd_name.clear();
-        let (pty, pts) = pty_process::blocking::open()?;
+        let (mut pty, pts) = pty_process::blocking::open()?;
         let mut mpv_command = PtyCommand::new(mpv_cmd);
         let (demuxer_pty, demux_pts) = pty_process::blocking::open()?;
         mpv_command = mpv_command.args(mpv_args);
@@ -81,7 +82,15 @@ impl MpvHandler {
                     Ok(bridge) => break 'connect bridge,
                     Err(e) => {
                         if let Some(status) = child.try_wait()? {
-                            anyhow::bail!("mpv exited with {status}");
+                            let mut stderr = Vec::new();
+                            let result = pty.read_to_end(&mut stderr);
+                            if let Err(e) = result {
+                                logln!("Failed to read mpv pty: {e}");
+                            }
+                            let mut term = Term::new(80);
+                            term.feed(&stderr);
+                            let stderr = term.contents_to_string();
+                            anyhow::bail!("mpv exited with {status}.\nStderr:\n{stderr}");
                         }
                         logln!("mpv connection attempt #{i}: {e}");
                     }
