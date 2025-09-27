@@ -1,7 +1,7 @@
 //! Interprocess comunication with spawned mpv process
 
 mod command;
-mod property;
+pub mod property;
 
 use {
     crate::{logln, util::result_ext::LogErrExt as _},
@@ -87,12 +87,7 @@ impl Bridge {
         self.ipc_stream.write_all(&serialized)?;
         Ok(())
     }
-    pub fn write_str(&mut self, text: &str) -> anyhow::Result<()> {
-        self.ipc_stream.write_all(text.as_bytes())?;
-        self.ipc_stream.write_all(b"\n")?;
-        Ok(())
-    }
-    fn set_property<P: Property>(&mut self, value: P::Value) -> anyhow::Result<()>
+    pub fn set_property<P: Property>(&mut self, value: P::Value) -> anyhow::Result<()>
     where
         P::Value: PropValue,
     {
