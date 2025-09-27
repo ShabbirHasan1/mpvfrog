@@ -127,9 +127,16 @@ impl MpvHandler {
             Ok(None) => {}
             Ok(Some(status)) => {
                 if !status.success() {
+                    let mut remaining_data = Vec::new();
+                    let result = nbr.read_available(&mut remaining_data);
+                    if let Err(e) = result {
+                        logln!("Failed to read mpv pty: {e}");
+                    }
+                    self.mpv_term.feed(&remaining_data);
+                    let stderr = self.mpv_term.contents_to_string();
                     modal.error(
                         "Abnormal mpv termination",
-                        format!("Mpv exited with status {status}"),
+                        format!("Mpv exited with status {status}\nStderr:\n{stderr}"),
                     );
                 }
             }
