@@ -632,10 +632,16 @@ pub(crate) fn try_add_fallback_font(ctx: &Context, path: &Path) -> anyhow::Resul
     ctx.add_font(FontInsert::new(
         &name,
         data,
-        vec![InsertFontFamily {
-            family: egui::FontFamily::Proportional,
-            priority: FontPriority::Lowest,
-        }],
+        vec![
+            InsertFontFamily {
+                family: egui::FontFamily::Proportional,
+                priority: FontPriority::Lowest,
+            },
+            InsertFontFamily {
+                family: egui::FontFamily::Monospace,
+                priority: FontPriority::Lowest,
+            },
+        ],
     ));
     Ok(())
 }
