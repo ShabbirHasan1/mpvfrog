@@ -39,8 +39,7 @@ dependencies = [
 [[package]]
 name = "ansi_term_buf"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d602aead8e879e1a2ae75af799a569948bf7fe24e1655c69c1120beebd30ebd5"
+source = "git+https://github.com/crumblingstatue/ansi_term_buf.git#ba7ff08faaa0603b3bcbe648c50f4e0a76d6cb56"
 dependencies = [
  "log",
 ]

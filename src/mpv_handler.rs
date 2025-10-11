@@ -252,8 +252,8 @@ pub struct TimeInfo {
 impl Default for MpvHandler {
     fn default() -> Self {
         Self {
-            mpv_term: Term::new(100),
-            demux_term: Term::new(100),
+            mpv_term: Term::new(80),
+            demux_term: Term::new(80),
             demux_cmd_name: String::new(),
             inner: None,
             read_demuxer: true,
